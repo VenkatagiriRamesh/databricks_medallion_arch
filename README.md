@@ -2,10 +2,10 @@
   <img src="docs/architecture_diagram.png" alt="Medallion Architecture Diagram" width="700"/>
 </p>
 
-<h1 align="center">🏗️ Databricks Medallion Architecture — E-Commerce Data Pipeline</h1>
+<h1 align="center">Databricks Medallion Architecture — E-Commerce Data Pipeline</h1>
 
 <p align="center">
-  <em>A production-style, three-layer data lakehouse pipeline built on Databricks &amp; Delta Lake</em>
+  <em>A production-style, three-layer data lakehouse pipeline built on Databricks and Delta Lake</em>
 </p>
 
 <p align="center">
@@ -17,41 +17,42 @@
 
 ---
 
-## 📖 Overview
+## Overview
 
-This project implements the **Medallion Architecture** (Bronze → Silver → Gold) on **Databricks** using **Delta Lake** and **Unity Catalog**. It processes the [Olist Brazilian E-Commerce](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) dataset through three progressively refined layers:
+This project implements the **Medallion Architecture** (Bronze, Silver, Gold) on **Databricks** using **Delta Lake** and **Unity Catalog**. It processes the [Olist Brazilian E-Commerce](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) dataset through three progressively refined layers:
 
 | Layer | Purpose | Schema |
 |:-----:|---------|--------|
-| 🥉 **Bronze** | Raw ingestion — faithful copy of source CSVs with ingestion metadata | `medallion_trial.bronze` |
-| 🥈 **Silver** | Cleaned & typed — proper data types, deduplication, null handling | `medallion_trial.silver` |
-| 🥇 **Gold** | Business aggregates — analytics-ready tables (e.g., daily revenue) | `medallion_trial.gold` |
+| **Bronze** | Raw ingestion — faithful copy of source CSVs with ingestion metadata | `medallion_trial.bronze` |
+| **Silver** | Cleaned and typed — proper data types, deduplication, null handling | `medallion_trial.silver` |
+| **Gold** | Business aggregates — analytics-ready tables (e.g., daily revenue) | `medallion_trial.gold` |
 
 ---
 
-## 🗂️ Project Structure
+## Project Structure
 
 ```
 databricks_medallion_arch/
 │
-├── 📁 schema_mgt/                          # Infrastructure setup
-│   └── catalog_and_schema_creation.ipynb   # Creates catalog, schemas & volumes
+├── schema_mgt/                              # Infrastructure setup
+│   └── catalog_and_schema_creation.ipynb    # Creates catalog, schemas, and volumes
 │
-├── 📁 src/                                 # ETL pipeline notebooks
-│   ├── 01_ingest_to_bronze.ipynb           # CSV → Bronze Delta tables
-│   ├── 02_transform_to_silver.ipynb        # Bronze → Silver (clean & type)
-│   └── 03_aggregate_to_gold.ipynb          # Silver → Gold (daily revenue)
+├── src/                                     # ETL pipeline notebooks (run in order)
+│   ├── 01_ingest_to_bronze.ipynb            # CSV to Bronze Delta tables
+│   ├── 02_transform_to_silver.ipynb         # Bronze to Silver (clean and type)
+│   └── 03_aggregate_to_gold.ipynb           # Silver to Gold (daily revenue)
 │
-├── 📁 docs/                                # Documentation assets
-│   └── architecture_diagram.png            # Architecture overview diagram
+├── docs/                                    # Documentation assets
+│   └── architecture_diagram.png             # Architecture overview diagram
 │
 ├── .gitignore
+├── LICENSE
 └── README.md
 ```
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -61,19 +62,19 @@ databricks_medallion_arch/
 
 ### Step-by-Step Setup
 
-#### 1️⃣ Clone this Repository
+#### 1. Clone this Repository
 
 ```bash
-git clone https://github.com/<your-username>/databricks_medallion_arch.git
+git clone https://github.com/VenkatagiriRamesh/databricks_medallion_arch.git
 ```
 
-#### 2️⃣ Import Notebooks into Databricks
+#### 2. Import Notebooks into Databricks
 
-Import the entire repository into your Databricks workspace via **Repos** or upload the `.ipynb` files manually.
+Import the entire repository into your Databricks workspace via **Repos**, or upload the `.ipynb` files manually.
 
-#### 3️⃣ Upload the Source Data
+#### 3. Upload the Source Data
 
-Download the [Olist dataset from Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) and upload these CSV files to the Unity Catalog Volume:
+Download the [Olist dataset from Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) and upload the following CSV files to the Unity Catalog Volume:
 
 ```
 /Volumes/medallion_trial/bronze/raw_landing_zone/
@@ -83,7 +84,7 @@ Download the [Olist dataset from Kaggle](https://www.kaggle.com/datasets/olistbr
 └── olist_products_dataset.csv
 ```
 
-#### 4️⃣ Run the Notebooks in Order
+#### 4. Run the Notebooks in Order
 
 | Step | Notebook | Description |
 |:----:|----------|-------------|
@@ -94,7 +95,7 @@ Download the [Olist dataset from Kaggle](https://www.kaggle.com/datasets/olistbr
 
 ---
 
-## 📓 Notebook Details
+## Notebook Details
 
 ### `schema_mgt/catalog_and_schema_creation` — Infrastructure Setup
 
@@ -105,8 +106,8 @@ Creates the foundational Unity Catalog resources:
 
 ### `src/01_ingest_to_bronze` — Raw Ingestion
 
-- Reads CSV files with `inferSchema=false` (all strings) to preserve raw fidelity
-- Adds `ingest_timestamp` metadata column for lineage tracking
+- Reads CSV files with `inferSchema=false` (all columns stored as strings) to preserve raw fidelity
+- Adds an `ingest_timestamp` metadata column for lineage tracking
 - Writes as **overwrite** Delta tables (full-refresh pattern)
 - Includes a validation query to preview ingested data
 
@@ -115,7 +116,7 @@ Creates the foundational Unity Catalog resources:
 **Orders table:**
 - Casts `order_purchase_timestamp` and `order_delivered_customer_date` to `TimestampType`
 - Deduplicates on `order_id`
-- Drops rows missing `order_id` or `customer_id`
+- Drops rows where `order_id` or `customer_id` is null
 
 **Order Items table:**
 - Casts `price` and `freight_value` to `FloatType`
@@ -124,25 +125,25 @@ Creates the foundational Unity Catalog resources:
 ### `src/03_aggregate_to_gold` — Business Aggregates
 
 - Inner-joins orders with order items on `order_id`
-- Extracts `order_date` from purchase timestamp
+- Extracts `order_date` from the purchase timestamp
 - Computes **daily revenue** (`total_revenue_usd`) and **daily freight** (`total_freight_usd`)
 - Includes validation queries and a revenue trend visualization
 
 ---
 
-## 🏛️ Architecture Deep Dive
+## Architecture Deep Dive
 
 ### Why Medallion Architecture?
 
-The Medallion Architecture provides a **structured approach** to organizing data in a lakehouse:
+The Medallion Architecture provides a **structured, layered approach** to organizing data in a lakehouse:
 
 ```
 ┌──────────────┐     ┌──────────────────┐     ┌─────────────────────┐
 │              │     │                  │     │                     │
-│   BRONZE     │────▶│     SILVER       │────▶│       GOLD          │
+│   BRONZE     │────>│     SILVER       │────>│       GOLD          │
 │              │     │                  │     │                     │
 │  Raw data    │     │  Cleaned data    │     │  Business-ready     │
-│  as-is from  │     │  with proper     │     │  aggregates &       │
+│  as-is from  │     │  with proper     │     │  aggregates and     │
 │  source      │     │  types & quality │     │  KPIs               │
 │              │     │  gates           │     │                     │
 └──────────────┘     └──────────────────┘     └─────────────────────┘
@@ -150,8 +151,8 @@ The Medallion Architecture provides a **structured approach** to organizing data
 
 | Principle | Implementation |
 |-----------|---------------|
-| **Raw fidelity** | Bronze stores all data as strings — no data loss |
-| **Data quality** | Silver applies type casting, dedup, and null checks |
+| **Raw fidelity** | Bronze stores all data as strings — no data loss from the source |
+| **Data quality** | Silver applies type casting, deduplication, and null checks |
 | **Business logic** | Gold contains only analytics-ready aggregates |
 | **Lineage** | `ingest_timestamp` tracks when data entered the pipeline |
 | **Idempotency** | All writes use `overwrite` mode for safe re-runs |
@@ -168,7 +169,7 @@ The Medallion Architecture provides a **structured approach** to organizing data
 
 ---
 
-## 📊 Sample Output
+## Sample Output
 
 After running all notebooks, query the Gold table:
 
@@ -189,11 +190,11 @@ LIMIT  5;
 
 ---
 
-## 🧩 Extending the Pipeline
+## Extending the Pipeline
 
-Here are some ideas for extending this project:
+Below are some ideas for extending this project:
 
-- **Add more Gold tables** — customer lifetime value, product category performance, delivery SLA analysis
+- **Additional Gold tables** — customer lifetime value, product category performance, delivery SLA analysis
 - **Incremental loads** — switch Bronze from `overwrite` to `append` mode with Auto Loader
 - **Data quality framework** — integrate [Great Expectations](https://greatexpectations.io/) or Databricks built-in expectations
 - **Orchestration** — use Databricks Workflows or Apache Airflow to schedule the pipeline
@@ -202,20 +203,14 @@ Here are some ideas for extending this project:
 
 ---
 
-## 📜 License
+## License
 
 This project is open source and available under the [MIT License](LICENSE).
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **Dataset:** [Olist Brazilian E-Commerce Dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) on Kaggle
 - **Platform:** [Databricks](https://www.databricks.com/) Community Edition
 - **Architecture Pattern:** [Medallion Architecture](https://www.databricks.com/glossary/medallion-architecture) by Databricks
-
----
-
-<p align="center">
-  Made with ❤️ on Databricks
-</p>
